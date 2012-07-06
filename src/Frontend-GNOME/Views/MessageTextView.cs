@@ -266,7 +266,7 @@ namespace Smuxi.Frontend.Gnome
             buffer.AddMark(startMark, iter);
 
 
-            var senderPrefixWidth = GetPangoWidth("MM");
+            var senderPrefixWidth = GetPangoWidth("-!- ");
             Gtk.TextTag indentTag = null;
             if (senderPrefixWidth != 0) {
                 // TODO: re-use text tags that have the same indent width
