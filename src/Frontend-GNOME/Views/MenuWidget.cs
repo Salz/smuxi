@@ -120,6 +120,10 @@ namespace Smuxi.Frontend.Gnome
             f_MenuBar.NoShowAll = true;
             f_MenuBar.Visible = (bool) Frontend.FrontendConfig["ShowMenuBar"];
 
+	    // TODO: Add config item in menu
+	    f_MenuToolbar.NoShowAll = true;
+	    f_MenuToolbar.Visible = false;
+
             JoinWidget = new JoinWidget();
             JoinWidget.NoShowAll = true;
             JoinWidget.Activated += OnJoinWidgetActivated;
