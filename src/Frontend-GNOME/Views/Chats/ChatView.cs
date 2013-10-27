@@ -333,7 +333,7 @@ namespace Smuxi.Frontend.Gnome
             _TabHBox = new Gtk.HBox();
             _TabHBox.PackEnd(new Gtk.Fixed(), true, true, 0);
             _TabHBox.PackEnd(_TabLabel, false, false, 0);
-            _TabHBox.PackStart(TabImage, false, false, 2);
+            //_TabHBox.PackStart(TabImage, false, false, 2);
             _TabHBox.ShowAll();
             
             _TabEventBox = new Gtk.EventBox();
@@ -497,7 +497,7 @@ namespace Smuxi.Frontend.Gnome
             Trace.Call();
 
             GLib.Idle.Add(delegate {
-                TabImage.SetFromStock(Gtk.Stock.Refresh, Gtk.IconSize.Menu);
+                //TabImage.SetFromStock(Gtk.Stock.Refresh, Gtk.IconSize.Menu);
                 OnStatusChanged(EventArgs.Empty);
                 return false;
             });
