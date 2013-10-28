@@ -260,8 +260,8 @@ namespace Smuxi.Frontend.Gnome
             };
 
             var treeviewPaned = new Gtk.HPaned();
-            treeviewPaned.Pack1(treeviewScrolledWindow, false, false);
-            treeviewPaned.Pack2(Notebook, true, false);
+            treeviewPaned.Pack1(Notebook, true, false);
+            treeviewPaned.Pack2(treeviewScrolledWindow, false, false);
 
             var entryPaned = new Gtk.VPaned();
             entryPaned.ButtonPressEvent += (sender, e) => {
