@@ -766,17 +766,14 @@ namespace Smuxi.Engine
         {
             Trace.Call(cmd);
 
-            if (cmd == null) {
-                throw new ArgumentNullException("cmd");
-            }
-
+            FrontendManager frontendMgr = cmd != null ? cmd.FrontendManager : null;
 #if LOG4NET
             f_Logger.Info("Shutting down...");
 #endif
             lock (_ProtocolManagers) {
                 foreach (var protocolManager in _ProtocolManagers) {
                     try {
-                        protocolManager.Disconnect(cmd.FrontendManager);
+                        protocolManager.Disconnect(frontendMgr);
                         protocolManager.Dispose();
                     } catch (Exception ex) {
 #if LOG4NET
@@ -1416,12 +1413,6 @@ namespace Smuxi.Engine
             if (!String.IsNullOrEmpty(server.Password)) {
                 password = server.Password;
             }
-            protocolManager.Connect(frontendManager, server);
-            if (protocolManager.Chat == null) {
-                // just in case the ProtocolManager is not setting the
-                // protocol chat
-                throw new ApplicationException(_("Connect failed."));
-            }
 
             if (server.OnConnectCommands != null && server.OnConnectCommands.Count > 0) {
                 protocolManager.Connected += delegate {
@@ -1438,6 +1429,13 @@ namespace Smuxi.Engine
                         protocolManager.Command(cd);
                     }
                 };
+            }
+
+            protocolManager.Connect(frontendManager, server);
+            if (protocolManager.Chat == null) {
+                // just in case the ProtocolManager is not setting the
+                // protocol chat
+                throw new ApplicationException(_("Connect failed."));
             }
 
             return protocolManager;

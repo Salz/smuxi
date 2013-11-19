@@ -22,6 +22,7 @@ using System;
 using System.Net;
 using System.Net.Security;
 using System.Web;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Collections.Generic;
@@ -321,6 +322,8 @@ namespace Smuxi.Engine
                         fm.UpdateNetworkStatus();
                         fm.SetStatus(message);
                     }
+                    OnConnected(EventArgs.Empty);
+
                     msg = CreateMessageBuilder().
                         AppendEventPrefix().AppendText(message).ToMessage();
                     Session.AddMessageToChat(Chat, msg);
@@ -614,6 +617,23 @@ namespace Smuxi.Engine
                             CommandMessage(command);
                             handled = true;
                             break;
+                        case "timeline":
+                            CommandTimeline(command);
+                            handled = true;
+                            break;
+                        case "follow":
+                            CommandFollow(command);
+                            handled = true;
+                            break;
+                        case "unfollow":
+                            CommandUnfollow(command);
+                            handled = true;
+                            break;
+                        case "search":
+                        case "join":
+                            CommandSearch(command);
+                            handled = true;
+                            break;
                     }
                 }
                 switch (command.Command) {
@@ -663,6 +683,9 @@ namespace Smuxi.Engine
             string[] help = {
                 "connect twitter username",
                 "pin pin-number",
+                "follow screen-name|user-id",
+                "unfollow screen-name|user-id",
+                "search keyword",
             };
 
             foreach (string line in help) {
@@ -851,6 +874,57 @@ namespace Smuxi.Engine
             }
         }
 
+        public void CommandTimeline(CommandModel cmd)
+        {
+            if (cmd.DataArray.Length < 2) {
+                NotEnoughParameters(cmd);
+                return;
+            }
+
+            string keyword = cmd.Parameter;
+            string[] users = cmd.Parameter.Split(',');
+
+            string chatName = users.Length > 1 ? _("Other timelines") : users[0];
+            ChatModel chat;
+
+            if (users.Length > 1) {
+                chat = Session.CreateChat<GroupChatModel>(keyword, chatName, this);
+            } else {
+                var userResponse = TwitterUser.Show(f_OAuthTokens, users [0], f_OptionalProperties);
+                CheckResponse(userResponse);
+                var person = GetPerson(userResponse.ResponseObject);
+                chat = Session.CreatePersonChat(person, this);
+            }
+            Session.AddChat(chat);
+
+            var statuses = new List<TwitterStatus>();
+            foreach (var user in users) {
+                var opts = CreateOptions<UserTimelineOptions>();
+                opts.ScreenName = user;
+                var statusCollectionResponse = TwitterTimeline.UserTimeline(f_OAuthTokens, opts);
+                CheckResponse(statusCollectionResponse);
+
+                foreach (var status in statusCollectionResponse.ResponseObject) {
+                    statuses.Add(status);
+                }
+            }
+
+            var sortedStatuses = SortTimeline(statuses);
+            foreach (var status in sortedStatuses) {
+                var msg = CreateMessageBuilder().
+                    Append(status, GetPerson(status.User)).ToMessage();
+                chat.MessageBuffer.Add(msg);
+                var userId = status.User.Id.ToString();
+                var groupChat = chat as GroupChatModel;
+                if (groupChat != null) {
+                    if (!groupChat.UnsafePersons.ContainsKey(userId)) {
+                        groupChat.UnsafePersons.Add(userId, GetPerson(status.User));
+                    }
+                }
+            }
+            Session.SyncChat(chat);
+        }
+
         public void CommandMessage(CommandModel cmd)
         {
             string nickname;
@@ -889,21 +963,112 @@ namespace Smuxi.Engine
                     Session.AddMessageToFrontend(cmd.FrontendManager, chat, msg);
                 }
             }
-         }
+        }
 
-        private List<TwitterStatus> SortTimeline(TwitterStatusCollection timeline)
+        public void CommandFollow(CommandModel cmd)
+        {
+            if (cmd.DataArray.Length < 2) {
+                NotEnoughParameters(cmd);
+                return;
+            }
+
+            var chat = cmd.Chat as GroupChatModel;
+            if (chat == null) {
+                return;
+            }
+
+            var options = CreateOptions<CreateFriendshipOptions>();
+            options.Follow = true;
+            decimal userId;
+            TwitterResponse<TwitterUser> res;
+            if (Decimal.TryParse(cmd.Parameter, out userId)) {
+                // parameter is an ID
+                res = TwitterFriendship.Create(f_OAuthTokens, userId, options);
+            } else {
+                // parameter is a screen name
+                var screenName = cmd.Parameter;
+                res = TwitterFriendship.Create(f_OAuthTokens, screenName, options);
+            }
+            CheckResponse(res);
+            var person = CreatePerson(res.ResponseObject);
+            Session.AddPersonToGroupChat(chat, person);
+        }
+
+        public void CommandUnfollow(CommandModel cmd)
+        {
+            if (cmd.DataArray.Length < 2) {
+                NotEnoughParameters(cmd);
+                return;
+            }
+
+            var chat = cmd.Chat as GroupChatModel;
+            if (chat == null) {
+                return;
+            }
+
+            PersonModel person;
+            var persons = chat.Persons;
+            if (persons.TryGetValue(cmd.Parameter, out person)) {
+                // parameter is an ID
+                decimal userId;
+                Decimal.TryParse(cmd.Parameter, out userId);
+                var res = TwitterFriendship.Delete(f_OAuthTokens, userId, f_OptionalProperties);
+                CheckResponse(res);
+            } else {
+                // parameter is a screen name
+                var screenName = cmd.Parameter;
+                person = persons.Single((arg) => arg.Value.IdentityName == screenName).Value;
+                var res = TwitterFriendship.Delete(f_OAuthTokens, screenName, f_OptionalProperties);
+                CheckResponse(res);
+            }
+            Session.RemovePersonFromGroupChat(chat, person);
+        }
+
+        public bool IsHomeTimeLine(ChatModel chatModel)
+        {
+            return chatModel.Equals(f_FriendsTimelineChat);
+        }
+
+        private List<TwitterStatus> SortTimeline(IList<TwitterStatus> timeline)
         {
             List<TwitterStatus> sortedTimeline =
                 new List<TwitterStatus>(
-                    timeline.Count
+                    timeline
                 );
-            foreach (TwitterStatus status in timeline) {
-                sortedTimeline.Add(status);
-            }
             sortedTimeline.Sort(
                 (a, b) => (a.CreatedDate.CompareTo(b.CreatedDate))
             );
             return sortedTimeline;
+        }
+
+        public void CommandSearch(CommandModel cmd)
+        {
+            if (cmd.DataArray.Length < 2) {
+                NotEnoughParameters(cmd);
+                return;
+            }
+
+            var keyword = cmd.Parameter;
+            var chatName = String.Format(_("Search {0}"), keyword);
+            var chat = Session.CreateChat<GroupChatModel>(keyword, chatName, this);
+            Session.AddChat(chat);
+            var options = CreateOptions<SearchOptions>();
+            options.Count = 50;
+            var response = TwitterSearch.Search(f_OAuthTokens, keyword, options);
+            CheckResponse(response);
+            var search = response.ResponseObject;
+            var sortedSearch = SortTimeline(search);
+            foreach (var status in sortedSearch) {
+                var msg = CreateMessageBuilder().
+                    Append(status, GetPerson(status.User)).
+                    ToMessage();
+                chat.MessageBuffer.Add(msg);
+                var userId = status.User.Id.ToString();
+                if (!chat.UnsafePersons.ContainsKey(userId)) {
+                    chat.UnsafePersons.Add(userId, GetPerson(status.User));
+                }
+            }
+            Session.SyncChat(chat);
         }
 
         private List<TwitterDirectMessage> SortTimeline(TwitterDirectMessageCollection timeline)
@@ -1009,25 +1174,23 @@ namespace Smuxi.Engine
 
             List<TwitterStatus> sortedTimeline = SortTimeline(timeline);
             foreach (TwitterStatus status in sortedTimeline) {
-                String text;
-                // LAME: Twitter lies in the truncated field and says it's not
-                // truncated while it is, thus always use retweet_status if
-                // available
-                if (status.RetweetedStatus != null) {
-                    text = String.Format(
-                        "RT @{0}: {1}",
-                        status.RetweetedStatus.User.ScreenName,
-                        status.RetweetedStatus.Text
+                var msg = CreateMessageBuilder().
+                    Append(status, GetPerson(status.User)).
+                    ToMessage();
+                Session.AddMessageToChat(f_FriendsTimelineChat, msg);
+
+                if (status.User.Id.ToString() == Me.ID) {
+                    OnMessageSent(
+                        new MessageEventArgs(f_FriendsTimelineChat, msg, null,
+                                             status.InReplyToScreenName ?? String.Empty)
                     );
                 } else {
-                    text = status.Text;
+                    OnMessageReceived(
+                        new MessageEventArgs(f_FriendsTimelineChat, msg,
+                                             status.User.ScreenName,
+                                             status.InReplyToScreenName ?? String.Empty)
+                    );
                 }
-                MessageModel msg = CreateMessage(
-                    status.CreatedDate,
-                    status.User,
-                    text
-                );
-                Session.AddMessageToChat(f_FriendsTimelineChat, msg);
 
                 f_LastFriendsTimelineStatusID = status.Id;
             }
@@ -1121,13 +1284,16 @@ namespace Smuxi.Engine
             bool highlight = f_LastReplyStatusID != 0;
             List<TwitterStatus> sortedTimeline = SortTimeline(timeline);
             foreach (TwitterStatus status in sortedTimeline) {
-                MessageModel msg = CreateMessage(
-                    status.CreatedDate,
-                    status.User,
-                    status.Text,
-                    highlight
-                );
+                var msg = CreateMessageBuilder().
+                    Append(status, GetPerson(status.User), highlight).
+                    ToMessage();
                 Session.AddMessageToChat(f_RepliesChat, msg);
+
+                OnMessageReceived(
+                    new MessageEventArgs(f_RepliesChat, msg,
+                                         status.User.ScreenName,
+                                         status.InReplyToScreenName ?? String.Empty)
+                );
 
                 f_LastReplyStatusID = status.Id;
             }
@@ -1263,12 +1429,9 @@ namespace Smuxi.Engine
                 // this is a new one!
                 bool highlight = receivedTimeline.Contains(directMsg) &&
                                  f_LastDirectMessageReceivedStatusID != 0;
-                MessageModel msg = CreateMessage(
-                    directMsg.CreatedDate,
-                    directMsg.Sender,
-                    directMsg.Text,
-                    highlight
-                );
+                var msg = CreateMessageBuilder().
+                    Append(directMsg, GetPerson(directMsg.Sender), highlight).
+                    ToMessage();
                 Session.AddMessageToChat(f_DirectMessagesChat, msg);
 
                 // if there is a tab open for this user put the message there too
@@ -1276,9 +1439,19 @@ namespace Smuxi.Engine
                 if (receivedTimeline.Contains(directMsg)) {
                     // this is a received message
                     userId =  directMsg.SenderId.ToString();
+
+                    OnMessageReceived(
+                        new MessageEventArgs(f_DirectMessagesChat, msg,
+                                             directMsg.SenderScreenName, null)
+                    );
                 } else {
                     // this is a sent message
                     userId = directMsg.RecipientId.ToString();
+
+                    OnMessageSent(
+                        new MessageEventArgs(f_DirectMessagesChat, msg,
+                                             null, directMsg.RecipientScreenName)
+                    );
                 }
                 ChatModel chat =  Session.GetChat(
                     userId,
@@ -1368,33 +1541,15 @@ namespace Smuxi.Engine
             CheckResponse(response);
             var user = response.ResponseObject;
             f_TwitterUser = user;
+            Me = CreatePerson(f_TwitterUser);
 #if LOG4NET
             f_Logger.Debug("UpdateUser(): done.");
 #endif
         }
 
-        private MessageModel CreateMessage(DateTime when, TwitterUser from,
-                                           string message)
+        protected new TwitterMessageBuilder CreateMessageBuilder()
         {
-            return CreateMessage(when, from, message, false);
-        }
-
-        private MessageModel CreateMessage(DateTime when, TwitterUser from,
-                                           string message, bool highlight)
-        {
-            if (from == null) {
-                throw new ArgumentNullException("from");
-            }
-            if (message == null) {
-                throw new ArgumentNullException("message");
-            }
-
-            var builder = CreateMessageBuilder();
-            // MessageModel serializer expects UTC values
-            builder.TimeStamp = when.ToUniversalTime();
-            builder.AppendSenderPrefix(GetPerson(from), highlight);
-            builder.AppendMessage(message);
-            return builder.ToMessage();
+            return CreateMessageBuilder<TwitterMessageBuilder>();
         }
 
         private T CreateOptions<T>() where T : OptionalProperties, new()

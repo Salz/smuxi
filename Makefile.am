@@ -7,8 +7,16 @@ if ENABLE_ENGINE_IRC
 PO_ENGINE_IRC = po-Engine-IRC
 endif
 
+if ENABLE_ENGINE_JABBR
+PO_ENGINE_IRC = po-Engine-JabbR
+endif
+
 if ENABLE_ENGINE_TWITTER
 PO_ENGINE_TWITTER = po-Engine-Twitter
+endif
+
+if ENABLE_ENGINE_XMPP
+PO_ENGINE_XMPP = po-Engine-XMPP
 endif
 
 # Frontends
@@ -18,6 +26,10 @@ endif
 
 if ENABLE_FRONTEND_GNOME_IRC
 PO_FRONTEND_GNOME_IRC = po-Frontend-GNOME-IRC
+endif
+
+if ENABLE_FRONTEND_GNOME_TWITTER
+PO_FRONTEND_GNOME_TWITTER = po-Frontend-GNOME-Twitter
 endif
 
 if ENABLE_FRONTEND_GNOME_XMPP
@@ -30,8 +42,9 @@ EXTRA_DIST =	install-sh \
 		expansions.m4 \
 		mono.m4 \
 		programs.m4 \
+		HACKING \
 		LICENSE \
-		README \
+		README.md \
 		CREDITS \
 		PROFILING \
 		FEATURES \
@@ -49,11 +62,14 @@ PODIRS =	po \
 		po-Engine \
 		$(PO_ENGINE_CAMPFIRE) \
 		$(PO_ENGINE_IRC) \
+		$(PO_ENGINE_JABBR) \
 		$(PO_ENGINE_TWITTER) \
+		$(PO_ENGINE_XMPP) \
 		po-Server \
 		po-Frontend \
 		$(PO_FRONTEND_GNOME) \
 		$(PO_FRONTEND_GNOME_IRC) \
+		$(PO_FRONTEND_GNOME_TWITTER) \
 		$(PO_FRONTEND_GNOME_XMPP)
 
 SUBDIRS = 	lib \

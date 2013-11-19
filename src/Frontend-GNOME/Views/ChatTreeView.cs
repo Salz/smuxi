@@ -154,7 +154,11 @@ namespace Smuxi.Frontend.Gnome
 
             var iter = FindChatIter(chatView);
             var path = TreeStore.GetPath(iter);
-            TreeStore.EmitRowChanged(path, iter);
+            //TreeStore.EmitRowChanged(path, iter);
+            // HACK: this emits row_changed _and_ sort_iter_changed and there is
+            // no other public API in GTK+ to trigger a resort of a modified
+            // value in the tree view :/
+            TreeStore.SetValue(iter, 0, chatView);
         }
 
         public virtual bool IsVisible(ChatView chatView)
@@ -334,6 +338,11 @@ namespace Smuxi.Frontend.Gnome
                 // found a parent \o/
                 TreeStore.Remove(ref iter);
                 TreeStore.AppendValues(parentIter, orphan);
+                var parentPath = TreeStore.GetPath(parentIter);
+                ExpandRow(parentPath, true);
+                // reset iter to first as we changed the store and thus can't
+                // continue the iteration
+                TreeStore.GetIterFirst(out iter);
             } while (TreeStore.IterNext(ref iter));
         }
 

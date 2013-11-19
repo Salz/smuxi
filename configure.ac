@@ -24,12 +24,14 @@ POSUB="
 	po-Engine
 	po-Engine-Campfire
 	po-Engine-IRC
-	po-Engine-XMPP
 	po-Engine-JabbR
+	po-Engine-Twitter
+	po-Engine-XMPP
 	po-Server
 	po-Frontend
 	po-Frontend-GNOME
 	po-Frontend-GNOME-IRC
+	po-Frontend-GNOME-Twitter
 	po-Frontend-GNOME-XMPP
 	po-Frontend-SWF
 "
@@ -57,7 +59,7 @@ GETTEXT_PACKAGE_ENGINE_CAMPFIRE=smuxi-engine-campfire
 AC_SUBST(GETTEXT_PACKAGE_ENGINE_CAMPFIRE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE_ENGINE_CAMPFIRE, "$GETTEXT_PACKAGE_ENGINE_CAMPFIRE", [Gettext package])
 
-GETTEXT_PACKAGE_ENGINE_TWITTER=smuxi-engine-jabbr
+GETTEXT_PACKAGE_ENGINE_JABBR=smuxi-engine-jabbr
 AC_SUBST(GETTEXT_PACKAGE_ENGINE_JABBR)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE_ENGINE_JABBR, "$GETTEXT_PACKAGE_ENGINE_JABBR", [Gettext package])
 
@@ -76,6 +78,10 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE_FRONTEND_GNOME, "$GETTEXT_PACKAGE_FRONTEND_GN
 GETTEXT_PACKAGE_FRONTEND_GNOME_IRC=smuxi-frontend-gnome-irc
 AC_SUBST(GETTEXT_PACKAGE_FRONTEND_GNOME_IRC)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE_FRONTEND_GNOME_IRC, "$GETTEXT_PACKAGE_FRONTEND_GNOME_IRC", [Gettext package])
+
+GETTEXT_PACKAGE_FRONTEND_GNOME_TWITTER=smuxi-frontend-gnome-twitter
+AC_SUBST(GETTEXT_PACKAGE_FRONTEND_GNOME_TWITTER)
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE_FRONTEND_GNOME_TWITTER, "$GETTEXT_PACKAGE_FRONTEND_GNOME_TWITTER", [Gettext package])
 
 GETTEXT_PACKAGE_FRONTEND_GNOME_XMPP=smuxi-frontend-gnome-xmpp
 AC_SUBST(GETTEXT_PACKAGE_FRONTEND_GNOME_XMPP)
@@ -585,10 +591,12 @@ if test "x$ENABLE_FRONTEND_GNOME" != "xno"; then
 	AC_SUBST(FRONTEND_GNOME_COMPILER_FLAGS)
 	
 	ENABLE_FRONTEND_GNOME_IRC=$ENABLE_ENGINE_IRC;
+	ENABLE_FRONTEND_GNOME_TWITTER=$ENABLE_ENGINE_TWITTER;
 	ENABLE_FRONTEND_GNOME_XMPP=$ENABLE_ENGINE_XMPP;
 fi
 AM_CONDITIONAL(ENABLE_FRONTEND_GNOME, test "x$ENABLE_FRONTEND_GNOME" = "xyes")
 AM_CONDITIONAL(ENABLE_FRONTEND_GNOME_IRC, test "x$ENABLE_FRONTEND_GNOME_IRC" = "xyes")
+AM_CONDITIONAL(ENABLE_FRONTEND_GNOME_TWITTER, test "x$ENABLE_FRONTEND_GNOME_TWITTER" = "xyes")
 AM_CONDITIONAL(ENABLE_FRONTEND_GNOME_XMPP, test "x$ENABLE_FRONTEND_GNOME_XMPP" = "xyes")
 
 AC_ARG_ENABLE([frontend-stfl],
@@ -668,6 +676,7 @@ AC_CONFIG_FILES([
 	src/Frontend-GNOME/Makefile
 	src/Frontend-GNOME/smuxi-frontend-gnome
 	src/Frontend-GNOME-IRC/Makefile
+	src/Frontend-GNOME-Twitter/Makefile
 	src/Frontend-GNOME-XMPP/Makefile
 	src/Frontend-Curses/Makefile
 	src/Frontend-Curses/smuxi-frontend-curses
@@ -684,11 +693,14 @@ AC_CONFIG_FILES([
 	po-Engine/Makefile.in
 	po-Engine-Campfire/Makefile.in
 	po-Engine-IRC/Makefile.in
+	po-Engine-JabbR/Makefile.in
 	po-Engine-Twitter/Makefile.in
+	po-Engine-XMPP/Makefile.in
 	po-Server/Makefile.in
 	po-Frontend/Makefile.in
 	po-Frontend-GNOME/Makefile.in
 	po-Frontend-GNOME-IRC/Makefile.in
+	po-Frontend-GNOME-Twitter/Makefile.in
 	po-Frontend-GNOME-XMPP/Makefile.in
 ])
 
@@ -717,7 +729,7 @@ AC_MSG_RESULT([
 
 	* Frontends
 	  ---------
-	  GNOME:               $ENABLE_FRONTEND_GNOME (IRC: $ENABLE_FRONTEND_GNOME_IRC XMPP: $ENABLE_FRONTEND_GNOME_XMPP)
+	  GNOME:               $ENABLE_FRONTEND_GNOME (IRC: $ENABLE_FRONTEND_GNOME_IRC XMPP: $ENABLE_FRONTEND_GNOME_XMPP Twitter: $ENABLE_FRONTEND_GNOME_TWITTER)
 	  + Messaging Menu     (indicate: Ubuntu <= 12.04, messaging-menu: Ubuntu >= 12.04)
 	    - indicate:        $WITH_INDICATE
 	    - messaging-menu:  $WITH_MESSAGINGMENU

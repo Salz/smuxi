@@ -51,8 +51,6 @@
     <Compile Include="Session.cs" />
     <Compile Include="SessionManager.cs" />
     <Compile Include="TextColor.cs" />
-    <Compile Include="UICommand.cs" />
-    <Compile Include="UICommandContainer.cs" />
     <Compile Include="Messages\MessageModel.cs" />
     <Compile Include="Messages\MessagePartModel.cs" />
     <Compile Include="Messages\TextMessagePartModel.cs" />
@@ -107,6 +105,7 @@
     <Compile Include="Hooks\Commands\HookCommand.cs" />
     <Compile Include="Hooks\Commands\ProtocolManagerHookCommand.cs" />
     <Compile Include="Hooks\Commands\SessionHookCommand.cs" />
+    <Compile Include="Hooks\Environments\CommandHookEnvironment.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Protocols\" />

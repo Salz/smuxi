@@ -1,13 +1,7 @@
 /*
- * $Id$
- * $URL$
- * $Rev$
- * $Author$
- * $Date$
- *
  * Smuxi - Smart MUltipleXed Irc
  *
- * Copyright (c) 2005-2006 Mirco Bauer <meebey@meebey.net>
+ * Copyright (c) 2013 Andrés G. Aragoneses <knocte@gmail.com>
  *
  * Full GPL License: <http://www.gnu.org/licenses/gpl.txt>
  *
@@ -26,21 +20,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-namespace Smuxi.Engine
-{
-    public enum UICommand
-    {
-        AddChat,
-        RemoveChat,
-        EnableChat,
-        DisableChat,
-        SyncChat,
-        AddMessageToChat,
-        AddPersonToGroupChat,
-        UpdatePersonInGroupChat,
-        UpdateTopicInGroupChat,
-        RemovePersonFromGroupChat,
-        SetNetworkStatus,
-        SetStatus,
-    }
-}
+using System.Reflection;
+
+[assembly: AssemblyTitle("Smuxi - Twitter support for GNOME frontend")]
+[assembly: AssemblyCopyright("2013 (C) Andrés G. Aragoneses <knocte@gmail.com>")]
+
+[assembly: AssemblyDelaySign(false)]
+[assembly: AssemblyKeyFile("")]
+
