@@ -33,6 +33,7 @@ namespace Smuxi.Engine
         public Presence Presence { get; set; }
         public DiscoInfo Disco { get; set; }
         public string Name { get; set; }
+        public string NicknameContactKnowsFromMe { get; set; }
     }
     
     internal class XmppPersonModel : PersonModel
@@ -40,7 +41,6 @@ namespace Smuxi.Engine
         public bool Temporary { get; set; }
         public Jid Jid { get; set; }
         public Dictionary<string, XmppResourceModel> Resources { get; private set; }
-        public Dictionary<Jid, XmppResourceModel> MucResources { get; private set; }
         public SubscriptionType Subscription { get; set; }
         public AskType Ask { get; set; }
         public XmppPersonModel(Jid jid, string nick, XmppProtocolManager protocolManager)
@@ -49,7 +49,6 @@ namespace Smuxi.Engine
             Trace.Call(jid, nick, protocolManager);
             Jid = jid.Bare;
             Resources = new Dictionary<string, XmppResourceModel>();
-            MucResources = new Dictionary<Jid, XmppResourceModel>();
             Ask = AskType.NONE;
             Subscription = SubscriptionType.none;
             Temporary = true;
@@ -86,19 +85,6 @@ namespace Smuxi.Engine
             return ret;
         }
 
-        public XmppResourceModel GetOrCreateMucResource(Jid jid)
-        {
-            Trace.Call(jid);
-            XmppResourceModel ret;
-            if (MucResources.TryGetValue(jid, out ret)) {
-                return ret;
-            }
-            ret = new XmppResourceModel();
-            ret.Name = jid;
-            MucResources.Add(jid, ret);
-            return ret;
-        }
-        
         public List<XmppResourceModel> GetResourcesWithHighestPriority()
         {
             List<XmppResourceModel> ret = new List<XmppResourceModel>();

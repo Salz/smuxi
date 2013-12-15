@@ -1,79 +1,43 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-#
+# 
 # Translators:
+# Bianca Mix <heavydemon@freenet.de>, 2013
+# Mirco Bauer <meebey@gmail.com>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: Smuxi - IRC client\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-08-19 12:23+0200\n"
-"PO-Revision-Date: 2010-11-30 04:12+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: German (http://www.transifex.net/projects/p/smuxi/team/de/)\n"
-"Language: de\n"
+"POT-Creation-Date: 2013-12-11 17:06+0100\n"
+"PO-Revision-Date: 2013-12-11 19:38+0000\n"
+"Last-Translator: Bianca Mix <heavydemon@freenet.de>\n"
+"Language-Team: German (http://www.transifex.com/projects/p/smuxi/language/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"Language: de\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:220
-#: ../src/Frontend-GNOME-XMPP/XmppPersonChatView.cs:51
-msgid "Whois"
-msgstr "Whois"
-
-#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:224
+#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:219
 msgid "Query"
 msgstr "Query"
 
-#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:229
-#: ../src/Frontend-GNOME-XMPP/XmppPersonChatView.cs:55
-msgid "Add To Contacts"
-msgstr ""
+#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:227
+#: ../src/Frontend-GNOME-XMPP/XmppPersonChatView.cs:215
+msgid "Whois"
+msgstr "Whois"
 
-#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:234
-#: ../src/Frontend-GNOME-XMPP/XmppPersonChatView.cs:59
+#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:233
+#: ../src/Frontend-GNOME-XMPP/XmppPersonChatView.cs:221
+msgid "Add To Contacts"
+msgstr "Zu Kontakten hinzufügen"
+
+#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:239
+#: ../src/Frontend-GNOME-XMPP/XmppPersonChatView.cs:227
 msgid "Invite to"
 msgstr "Einladen zu"
 
-#~ msgid "Op"
-#~ msgstr "Op"
-
-#~ msgid "Deop"
-#~ msgstr "Deop"
-
-#~ msgid "Voice"
-#~ msgstr "Voice"
-
-#~ msgid "Devoice"
-#~ msgstr "Devoice"
-
-#~ msgid "Kick"
-#~ msgstr "Kick"
-
-#~ msgid "Kick + Ban"
-#~ msgstr "Kick + Ban"
-
-#~ msgid "Ban"
-#~ msgstr "Ban"
-
-#~ msgid "Unban"
-#~ msgstr "Unban"
-
-#~ msgid "CTCP"
-#~ msgstr "CTCP"
-
-#~ msgid "Ping"
-#~ msgstr "Ping"
-
-#~ msgid "Version"
-#~ msgstr "Version"
-
-#~ msgid "Time"
-#~ msgstr "Zeit"
-
-#~ msgid "Finger"
-#~ msgstr "Finger"
-
-#~ msgid "Userinfo"
-#~ msgstr "Benutzerinformationen"
+#: ../src/Frontend-GNOME-XMPP/XmppGroupChatView.cs:257
+msgid "Rename"
+msgstr "Umbenennen"

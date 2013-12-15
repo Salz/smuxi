@@ -1,6 +1,6 @@
 // Smuxi - Smart MUltipleXed Irc
 // 
-// Copyright (c) 2010-2012 Mirco Bauer <meebey@meebey.net>
+// Copyright (c) 2010-2013 Mirco Bauer <meebey@meebey.net>
 // Copyright (c) 2013 Oliver Schneider <mail@oli-obk.de>
 // 
 // Full GPL License: <http://www.gnu.org/licenses/gpl.txt>
@@ -616,7 +616,14 @@ namespace Smuxi.Engine
             }
             if (node.HasChildNodes) {
                 foreach (XmlNode child in node.ChildNodes) {
-                    ParseHtml(child, submodel);
+                    // clone this model
+                    TextMessagePartModel nextmodel;
+                    if (submodel is UrlMessagePartModel) {
+                        nextmodel = new UrlMessagePartModel(submodel);
+                    } else {
+                        nextmodel = new TextMessagePartModel(submodel);
+                    }
+                    ParseHtml(child, nextmodel);
                 }
             } else {
                 // final node
@@ -625,8 +632,7 @@ namespace Smuxi.Engine
                 } else if (nodetype == "img") {
                     AppendUrl(node.Attributes.GetNamedItem("src").Value, "[image placeholder - UNIMPLEMENTED]");
                 } else {
-                    model.Text = node.Value.Replace("\r", "").Replace("\n", "");
-                    model.Text = HttpUtility.HtmlDecode(model.Text);
+                    model.Text = HttpUtility.HtmlDecode(node.Value);
                     AppendText(model);
                 }
             }
@@ -634,6 +640,7 @@ namespace Smuxi.Engine
 
         public virtual MessageBuilder AppendHtmlMessage(string html)
         {
+            html = NormalizeNewlines(html);
             XmlDocument doc = new XmlDocument();
             try {
                 // wrap in div to prevent messages beginning with text from failing "to be xml"
@@ -768,19 +775,76 @@ namespace Smuxi.Engine
 
         public virtual MessageBuilder AppendChatState(ContactModel contact, MessageType state)
         {
-            AppendActionPrefix();
             switch (state) {
                 case MessageType.ChatStateComposing:
-                    AppendFormat(_("{0} is typing..."), contact);
+                    if (Message.IsEmpty) {
+                        AppendActionPrefix();
+                        AppendFormat(_("{0} is typing..."), contact);
+                    }
                     break;
                 case MessageType.ChatStatePaused:
-                    AppendFormat(_("{0} has stopped typing..."), contact);
+                    if (Message.IsEmpty) {
+                        AppendActionPrefix();
+                        AppendFormat(_("{0} has stopped typing..."), contact);
+                    }
                     break;
                 case MessageType.ChatStateReset:
-                    AppendFormat(_("{0} has stopped typing..."), contact);
                     break;
                 default:
                     throw new ArgumentException("state is not a ChatState", "state");
+            }
+            MessageType = state;
+            return this;
+        }
+
+        protected static string NormalizeNewlines(string text)
+        {
+            if (text == null) {
+                throw new ArgumentNullException("text");
+            }
+            if (!text.Contains("\n")) {
+                // nothing to normalize
+                return text;
+            }
+
+            var normalized = new StringBuilder(text.Length);
+            text = text.Replace("\r\n", "\n");
+            foreach (var textPart in text.Split('\n')) {
+                var trimmed = textPart.TrimEnd(' ');
+                if (trimmed.Length == 0) {
+                    // skip empty lines
+                    continue;
+                }
+                normalized.AppendFormat("{0} ", trimmed);
+            }
+            // remove trailing space
+            normalized.Length--;
+            return normalized.ToString();
+        }
+
+        public virtual MessageBuilder AppendPresenceState(ContactModel contact, MessageType state)
+        {
+            switch (state) {
+                case MessageType.PresenceStateAway:
+                    if (Message.IsEmpty) {
+                        AppendActionPrefix();
+                        AppendFormat(_("{0} is away"), contact);
+                    }
+                    break;
+                case MessageType.PresenceStateOffline:
+                    if (Message.IsEmpty) {
+                        AppendActionPrefix();
+                        AppendFormat(_("{0} is offline"), contact);
+                    }
+                    break;
+                case MessageType.PresenceStateOnline:
+                    if (Message.IsEmpty) {
+                        AppendActionPrefix();
+                        AppendFormat(_("{0} is online"), contact);
+                    }
+                    break;
+                default:
+                    throw new ArgumentException("state is not a PresenceState", "state");
             }
             MessageType = state;
             return this;

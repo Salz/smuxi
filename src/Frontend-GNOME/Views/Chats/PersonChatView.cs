@@ -30,6 +30,7 @@ using System;
 using System.Collections.Generic;
 using Smuxi.Engine;
 using Smuxi.Common;
+using System.Threading;
 
 namespace Smuxi.Frontend.Gnome
 {
@@ -53,6 +54,23 @@ namespace Smuxi.Frontend.Gnome
             );
         }
 
+        public override void AddMessage(MessageModel msg)
+        {
+            switch (msg.MessageType) {
+                case MessageType.PersonChatPersonChanged:
+                    ThreadPool.QueueUserWorkItem(delegate {
+                        try {
+                            // REMOTING CALL
+                            PersonModel = PersonChatModel.Person;
+                        } catch (Exception ex) {
+                            Frontend.ShowException(ex);
+                        }
+                    });
+                    return;
+            }
+            base.AddMessage(msg);
+        }
+
         public PersonChatView(PersonChatModel chat) : base(chat)
         {
             Trace.Call(chat);
@@ -61,6 +79,10 @@ namespace Smuxi.Frontend.Gnome
 
             Add(OutputScrolledWindow);
             ShowAll();
+        }
+
+        protected PersonChatView(IntPtr handle) : base(handle)
+        {
         }
 
         public override IList<PersonModel> Participants

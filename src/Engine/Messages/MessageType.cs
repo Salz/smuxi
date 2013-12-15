@@ -36,6 +36,11 @@ namespace Smuxi.Engine
         Event,
         ChatStateComposing,
         ChatStatePaused,
-        ChatStateReset
+        ChatStateReset,
+        PresenceStateOffline,
+        PresenceStateAway,
+        PresenceStateOnline,
+        ChatNameChanged,
+        PersonChatPersonChanged
     }
 }
