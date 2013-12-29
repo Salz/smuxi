@@ -145,7 +145,7 @@ namespace Smuxi.Frontend
             handled = f_Session.Command(cmd);
             IProtocolManager pm = null;
             if (!handled) {
-                if (cmd.Chat is SessionChatModel) {
+                if (cmd.Chat is SessionChatModel && cmd.FrontendManager != null) {
                     pm = cmd.FrontendManager.CurrentProtocolManager;
                 } else {
                     pm = cmd.Chat.ProtocolManager;
@@ -163,6 +163,7 @@ namespace Smuxi.Frontend
                 var hooks = new HookRunner("frontend", "command-manager",
                                            "command-" + filteredCmd);
                 hooks.EnvironmentVariables.Add("FRONTEND_VERSION", FrontendVersion);
+                hooks.Environments.Add(new CommandHookEnvironment(cmd));
                 hooks.Environments.Add(new ChatHookEnvironment(cmd.Chat));
                 if (pm != null) {
                     hooks.Environments.Add(new ProtocolManagerHookEnvironment(pm));
