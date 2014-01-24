@@ -456,9 +456,9 @@ namespace Smuxi.Frontend.Gnome
                             Thread.Sleep(30 * 1000);
                         }
                     }
-                    Session = _MainWindow.EngineManager.Session;
                     _UserConfig = _MainWindow.EngineManager.UserConfig;
                     EngineVersion = _MainWindow.EngineManager.EngineVersion;
+                    Session = _MainWindow.EngineManager.Session;
 
                     Gtk.Application.Invoke(delegate {
                         Frontend.ConnectEngineToGUI();
@@ -802,7 +802,7 @@ namespace Smuxi.Frontend.Gnome
                 }
             }
             var linkChat = link.Fragment;
-            if (String.IsNullOrEmpty(linkChat)) {
+            if (String.IsNullOrEmpty(linkChat) && link.AbsolutePath.Length > 0) {
                 linkChat = link.AbsolutePath.Substring(1);
             }
 

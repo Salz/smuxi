@@ -38,6 +38,7 @@ namespace Smuxi.Frontend.Gnome
 #endif        
         private static readonly Gdk.Cursor _NormalCursor = new Gdk.Cursor(Gdk.CursorType.Xterm);
         private static readonly Gdk.Cursor _LinkCursor = new Gdk.Cursor(Gdk.CursorType.Hand2);
+        static readonly Regex NickRegex = new Regex("^(<([^ ]+)> )");
         static bool IsGtk2_17 { get; set; }
         private Gtk.TextTagTable _MessageTextTagTable;
         private MessageModel _LastMessage;
@@ -334,13 +335,12 @@ namespace Smuxi.Frontend.Gnome
                     var urlPart = (UrlMessagePartModel) msgPart;
                     var linkText = urlPart.Text ?? urlPart.Url;
 
-                    var url = urlPart.Url;
                     Uri uri;
                     try {
-                        uri = new Uri(url);
+                        uri = new Uri(urlPart.Url);
                     } catch (UriFormatException ex) {
 #if LOG4NET
-                        _Logger.Error("AddMessage(): Invalid URL: " + url, ex);
+                        _Logger.Error("AddMessage(): Invalid URL: " + urlPart.Url, ex);
 #endif
                         buffer.Insert(ref iter, linkText);
                         continue;
@@ -789,7 +789,7 @@ namespace Smuxi.Frontend.Gnome
                          tagName.StartsWith("bg_color:"))) {
                         continue;
                     }
-                    if (tag.IndentSet || tag is LinkTag) {
+                    if (tag.IndentSet || tag is LinkTag || tag is PersonTag) {
                         buffer.RemoveTag(tag, start_iter, end_iter);
                         _MessageTextTagTable.Remove(tag);
                         tag.Dispose();
@@ -814,7 +814,7 @@ namespace Smuxi.Frontend.Gnome
             // HACK: try to obtain the nickname from the message
             // TODO: extend MessageModel with Origin property
             var msgText = msg.ToString();
-            var nickMatch = Regex.Match(msgText, "^(<([^ ]+)> )");
+            var nickMatch = NickRegex.Match(msgText);
             if (nickMatch.Success) {
                 // HACK: the nick can be bold
                 if (msg.MessageParts.Count >= 3) {
@@ -844,9 +844,8 @@ namespace Smuxi.Frontend.Gnome
                 }
                 return GetPangoWidth(nickMatch.Groups[1].Value, false);
             } else {
-                var eventMatch = Regex.Match(msgText, "^(-!- )");
-                if (eventMatch.Success && eventMatch.Groups.Count >= 2) {
-                    return GetPangoWidth(eventMatch.Groups[1].Value, false);
+                if (msgText.StartsWith("-!- ")) {
+                    return GetPangoWidth("-!- ", false);
                 }
             }
             return 0;
