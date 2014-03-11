@@ -58,6 +58,7 @@ namespace Smuxi.Engine
         DateTime NewsFeedLastModified { get; set; }
         TimeSpan NewsFeedUpdateInterval { get; set; }
         TimeSpan NewsFeedRetryInterval { get; set; }
+        internal MessageBuilderSettings MessageBuilderSettings { get; private set; }
 
         public event EventHandler<GroupChatPersonAddedEventArgs> GroupChatPersonAdded;
         public event EventHandler<GroupChatPersonRemovedEventArgs> GroupChatPersonRemoved;
@@ -154,6 +155,8 @@ namespace Smuxi.Engine
             _UserConfig.Changed += OnUserConfigChanged;
             _FilterListController = new FilterListController(_UserConfig);
             _Filters = _FilterListController.GetFilterList().Values;
+            MessageBuilderSettings = new MessageBuilderSettings();
+            MessageBuilderSettings.ApplyConfig(_UserConfig);
             _Chats = new List<ChatModel>();
 
             InitSessionChat();
@@ -187,7 +190,9 @@ namespace Smuxi.Engine
         protected MessageBuilder CreateMessageBuilder()
         {
             var builder = new MessageBuilder();
-            builder.ApplyConfig(UserConfig);
+            // copy settings so the caller can override settings without
+            // changing the settings of the complete session
+            builder.Settings = new MessageBuilderSettings(MessageBuilderSettings);
             return builder;
         }
 
@@ -485,6 +490,7 @@ namespace Smuxi.Engine
                 "config (save|load|list)",
                 "config get key",
                 "config set key=value",
+                "config remove key",
                 "shutdown"
             };
 
@@ -698,11 +704,7 @@ namespace Smuxi.Engine
                 case "get":
                 case "list":
                     string key = null;
-                    if (action == "get") {
-                        if (cd.DataArray.Length < 3) {
-                            _NotEnoughParameters(cd);
-                            return;
-                        }
+                    if (action == "get" && cd.DataArray.Length >= 3) {
                         key = cd.DataArray[2];
                     }
                     foreach (var entry in _UserConfig.OrderBy(kvp => kvp.Key)) {
@@ -721,7 +723,7 @@ namespace Smuxi.Engine
                         _NotEnoughParameters(cd);
                         return;
                     }
-                    string setParam = cd.DataArray[2];
+                    var setParam = String.Join(" ", cd.DataArray.Skip(2).ToArray());
                     if (!setParam.Contains("=")) {
                         builder.AppendErrorText(
                             _("Invalid key/value format.")
@@ -729,34 +731,87 @@ namespace Smuxi.Engine
                         AddMessageToFrontend(cd, builder.ToMessage());
                         return;
                     }
-                    string setKey = setParam.Split('=')[0];
-                    string setValue = setParam.Split('=')[1];
+                    var setKey = setParam.Split('=')[0].Trim();
+                    var setValue = String.Join(
+                        "=", setParam.Split('=').Skip(1).ToArray()
+                    ).Trim();
                     object oldValue = _UserConfig[setKey];
+                    if (oldValue == null && setKey.StartsWith("MessagePatterns/")) {
+                        var id = setKey.Split('/')[1];
+                        var parsedId = Int32.Parse(id);
+                        var msgPatternSettings = new MessagePatternListController(_UserConfig);
+                        var pattern = msgPatternSettings.Get(parsedId);
+                        if (pattern == null) {
+                            // pattern does not exist, create it with default values
+                            pattern = new MessagePatternModel(parsedId);
+                            msgPatternSettings.Add(pattern, parsedId);
+                            oldValue = _UserConfig[setKey];
+                        }
+                    }
                     if (oldValue == null) {
                         builder.AppendErrorText(
                             _("Invalid config key: '{0}'"),
                             setKey
                         );
-                    } else {
-                        try {
-                            object newValue = Convert.ChangeType(setValue, oldValue.GetType());
-                            _UserConfig[setKey] = newValue;
-                            builder.AppendText("{0} = {1}", setKey, newValue.ToString());
-                        } catch (InvalidCastException) {
-                            builder.AppendErrorText(
-                                _("Could not convert config value: '{0}' to type: {1}"),
-                                setValue,
-                                oldValue.GetType().Name
-                            );
-                        } catch (FormatException) {
-                            builder.AppendErrorText(
-                                _("Could not convert config value: '{0}' to type: {1}"),
-                                setValue,
-                                oldValue.GetType().Name
-                            );
+                        AddMessageToFrontend(cd, builder.ToMessage());
+                        return;
+                    }
+
+                    try {
+                        object newValue = Convert.ChangeType(setValue, oldValue.GetType());
+                        _UserConfig[setKey] = newValue;
+                        builder.AppendText("{0} = {1}", setKey, newValue.ToString());
+                        if (setKey.StartsWith("MessagePatterns/")) {
+                            MessageBuilderSettings.ApplyConfig(UserConfig);
                         }
+                    } catch (InvalidCastException) {
+                        builder.AppendErrorText(
+                            _("Could not convert config value: '{0}' to type: {1}"),
+                            setValue,
+                            oldValue.GetType().Name
+                        );
+                    } catch (FormatException) {
+                        builder.AppendErrorText(
+                            _("Could not convert config value: '{0}' to type: {1}"),
+                            setValue,
+                            oldValue.GetType().Name
+                        );
                     }
                     break;
+                case "remove": {
+                    if (cd.DataArray.Length < 3) {
+                        _NotEnoughParameters(cd);
+                        return;
+                    }
+                    var removeParam = cd.DataArray[2];
+                    if (!removeParam.StartsWith("MessagePatterns/")) {
+                        builder.AppendErrorText(
+                            _("Invalid config remove key: '{0}'. Valid remove " +
+                              "keys: MessagePatterns/{{ID}}."),
+                            removeParam
+                        );
+                        AddMessageToFrontend(cd, builder.ToMessage());
+                        return;
+                    }
+                    var id = removeParam.Split('/')[1];
+                    var parsedId = Int32.Parse(id);
+                    var patternController = new MessagePatternListController(_UserConfig);
+                    var pattern = patternController.Get(parsedId);
+                    if (pattern == null) {
+                        builder.AppendErrorText(
+                            _("Message pattern with ID: '{0}' does not exist."),
+                            id
+                        );
+                    } else {
+                        patternController.Remove(parsedId);
+                        MessageBuilderSettings.ApplyConfig(UserConfig);
+                        builder.AppendText(
+                            _("Message pattern with ID: '{0}' removed."),
+                            id
+                        );
+                    }
+                    break;
+                }
                 default:
                     builder.AppendErrorText(
                         _("Invalid parameter for config; use load, save, get or set.")
@@ -770,27 +825,12 @@ namespace Smuxi.Engine
         {
             Trace.Call(cmd);
 
-            FrontendManager frontendMgr = cmd != null ? cmd.FrontendManager : null;
 #if LOG4NET
             f_Logger.Info("Shutting down...");
 #endif
-            lock (_ProtocolManagers) {
-                foreach (var protocolManager in _ProtocolManagers) {
-                    try {
-                        protocolManager.Disconnect(frontendMgr);
-                        protocolManager.Dispose();
-                    } catch (Exception ex) {
-#if LOG4NET
-                        f_Logger.ErrorFormat(
-                            "CommandShutdown(): {0}.Disconnect/Dispose() " +
-                            "failed, continuing with shutdown...",
-                            protocolManager.ToString()
-                        );
-                        f_Logger.Error("CommandShutdown(): Exception", ex);
-#endif
-                    }
-                }
-            }
+
+            var frontendMgr = cmd != null ? cmd.FrontendManager : null;
+            Shutdown(true, frontendMgr);
 
             if (IsLocal) {
                 // allow the frontend to cleanly terminate
@@ -1665,6 +1705,61 @@ namespace Smuxi.Engine
             }
 
             UpdatePresenceStatus(newStatus, newMessage);
+        }
+
+        public void Shutdown()
+        {
+            Shutdown(false, null);
+        }
+
+        public void Shutdown(bool clean, FrontendManager frontendManager)
+        {
+            Trace.Call(clean, frontendManager);
+
+#if LOG4NET
+            f_Logger.Debug("Shutdown(): flushing all message buffers");
+#endif
+            lock (_Chats) {
+                foreach (var chat in _Chats) {
+                    try {
+                        chat.MessageBuffer.Flush();
+                    } catch (Exception ex) {
+#if LOG4NET
+                        f_Logger.ErrorFormat(
+                            "Shutdown(): {0}.MessageBuffer.Flush() " +
+                            "failed, continuing with shutdown...",
+                            chat.ToString()
+                        );
+                        f_Logger.Error("Shutdown(): Exception", ex);
+#endif
+                    }
+                }
+            }
+
+            if (!clean) {
+                return;
+            }
+
+#if LOG4NET
+            f_Logger.Debug("Shutdown(): disconnecting and disposing all protocol manangers");
+#endif
+            lock (_ProtocolManagers) {
+                foreach (var protocolManager in _ProtocolManagers) {
+                    try {
+                        protocolManager.Disconnect(frontendManager);
+                        protocolManager.Dispose();
+                    } catch (Exception ex) {
+#if LOG4NET
+                        f_Logger.ErrorFormat(
+                            "Shutdown(): {0}.Disconnect/Dispose() " +
+                            "failed, continuing with shutdown...",
+                            protocolManager.ToString()
+                        );
+                        f_Logger.Error("Shutdown(): Exception", ex);
+#endif
+                    }
+                }
+            }
         }
 
         void UpdatePresenceStatus(PresenceStatus status, string message)

@@ -1,7 +1,7 @@
 /*
  * Smuxi - Smart MUltipleXed Irc
  *
- * Copyright (c) 2005-2013 Mirco Bauer <meebey@meebey.net>
+ * Copyright (c) 2005-2014 Mirco Bauer <meebey@meebey.net>
  *
  * Full GPL License: <http://www.gnu.org/licenses/gpl.txt>
  *
@@ -498,12 +498,8 @@ namespace Smuxi.Frontend.Gnome
             if (_FrontendManager != null) {
                 if (IsLocalEngine) {
                     try {
-                        // dispose (possibly flush) all protocol managers / chats
-                        lock (Session.ProtocolManagers) {
-                            foreach (var protocolManager in Session.ProtocolManagers) {
-                                protocolManager.Dispose();
-                            }
-                        }
+                        // shutdown session (flush message buffers)
+                        Session.Shutdown();
                     } catch (Exception ex) {
 #if LOG4NET
                         _Logger.Error("Quit(): Exception", ex);
@@ -855,6 +851,10 @@ namespace Smuxi.Frontend.Gnome
                     // try to find a server with this network name and connect to it
                     var serverSettings = new ServerListController(UserConfig);
                     server = serverSettings.GetServerByNetwork(linkNetwork);
+                    if (server == null) {
+                        // in case someone tried an unknown network
+                        return false;
+                    }
                     // ignore OnConnectCommands
                     server.OnConnectCommands = null;
                 } else if (!String.IsNullOrEmpty(linkHost)) {
