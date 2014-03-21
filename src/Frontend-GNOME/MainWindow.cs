@@ -149,10 +149,14 @@ namespace Smuxi.Frontend.Gnome
                 heigth = -1;
             }
             if (width == -1 && heigth == -1) {
+                width = 800;
+                heigth = 600;
                 SetDefaultSize(800, 600);
                 Maximize();
             } else if (width == 0 && heigth == 0) {
                 // HACK: map 0/0 to default size as it crashes on Windows :/
+                width = 800;
+                heigth = 600;
                 SetDefaultSize(800, 600);
             } else {
                 SetDefaultSize(width, heigth);
@@ -261,8 +265,17 @@ namespace Smuxi.Frontend.Gnome
             };
 
             var treeviewPaned = new Gtk.HPaned();
-            treeviewPaned.Pack1(Notebook, true, false);
-            treeviewPaned.Pack2(treeviewScrolledWindow, false, false);
+            if (false) {
+                // TreeView on right side
+                treeviewPaned.Pack1(treeviewScrolledWindow, false, false);
+                treeviewPaned.Pack2(Notebook, true, false);
+                treeviewPaned.Position = width / 6;
+            } else {
+                // TreeView on left side
+                treeviewPaned.Pack1(Notebook, true, false);
+                treeviewPaned.Pack2(treeviewScrolledWindow, false, false);
+                treeviewPaned.Position = width / 6 * 5;
+            }
             TreeViewHPaned = treeviewPaned;
 
             var entryPaned = new Gtk.VPaned();
@@ -377,7 +390,10 @@ namespace Smuxi.Frontend.Gnome
         {
             Trace.Call(e);
 
-            TreeViewHPaned.Position = e.Width / 6;
+            // TODO: don't reset treeview width on window resize/move
+            // we could set MinPosition/MaxPosition here, but 1/6 window width seems much on large screens
+            // also, if the tree view is on the right side, we might want to keep its current size
+            //TreeViewHPaned.Position = e.Width / 6;
             return base.OnConfigureEvent(e);
         }
 
